@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(file sample_doc/*.docx)",
+      "Bash(rm test_*.py)",
+      "Bash(ls *.py)",
+      "Bash(tee C:projectsbiddinginfobasetest_output.txt)",
+      "Bash(cd:*)",
+      "Bash(findstr /C:\"EPS\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:/DATA/Document/2026 年工作相关/260120 什邡 EPS 第三次' -Recurse -File | Select-Object FullName\")",
+      "Bash(python3 -c \":*)",
+      "Bash(iconv -f gbk -t utf-8)",
+      "Bash(python3:*)",
+      "Bash(findstr /i \"陕西中烟\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\Projects\\\\BiddingInfoBase\\\\sample_doc\\\\2026 年工作相关\\\\260120 陕西中烟技术中心搬迁' -Filter '*.pdf' | Select-Object Name\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\Projects\\\\BiddingInfoBase\\\\sample_doc\\\\2026 年工作相关' -Directory | Select-Object Name\")",
+      "Bash(copy \"C:\\\\Projects\\\\BiddingInfoBase\\\\sample_doc\\\\2026 年工作相关\\\\260120 什邡 EPS 第三次\\\\投标文件.docx\" \"C:\\\\Projects\\\\BiddingInfoBase\\\\test_file.docx\")",
+      "Bash(powershell -Command \"Copy-Item 'C:\\\\Projects\\\\BiddingInfoBase\\\\sample_doc\\\\2026 年工作相关\\\\260120 什邡 EPS 第三次\\\\投标文件.docx' 'C:\\\\Projects\\\\BiddingInfoBase\\\\test_file.docx' -Force; Write-Host 'Done'\")",
+      "Bash(robocopy \"C:\\\\Projects\\\\BiddingInfoBase\\\\sample_doc\\\\2026 年工作相关\\\\260120 什邡 EPS 第三次\" \"C:\\\\Projects\\\\BiddingInfoBase\" \"投标文件.docx\")",
+      "Bash(findstr /i \"文件 错误 OK\")",
+      "Bash(forfiles:*)",
+      "Bash(ls -la C:Usersheqin*.db)",
+      "Bash(sqlite3:*)",
+      "Bash(python -c \":*)",
+      "Bash(chcp 65001)"
+    ]
+  }
+}
