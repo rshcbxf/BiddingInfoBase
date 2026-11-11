@@ -13,8 +13,9 @@ temp*.pdf
 temp*.doc
 temp*.docx
 
-test*.py
-temp*.py
+# 只忽略根目录下的一次性脚本，保留 tools/archive/ 中的归档脚本
+/test*.py
+/temp*.py
 
 # ==========================================
 # 标准 Python 项目忽略（示例）

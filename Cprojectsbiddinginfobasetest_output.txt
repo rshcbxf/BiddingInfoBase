@@ -1,2 +1,0 @@
-数据库路径: C:\Users\heqin\AppData\Local\BiddingInfoBase\bidding.db
-数据库存在: False
