@@ -25,7 +25,7 @@ ctk.set_default_color_theme("blue")
 class App(ctk.CTk):
     """投标文件信息管理系统主窗口"""
 
-    def __init__(self):
+    def __init__(self, db_path: Optional[str] = None):
         super().__init__()
 
         self.title("投标文件信息管理系统")
@@ -38,14 +38,22 @@ class App(ctk.CTk):
         self.scanner: Optional[FileScanner] = None
         self.scan_thread: Optional[threading.Thread] = None
 
-        # 设置默认数据库路径
-        self.db_path = os.path.join(
-            os.path.expanduser("~"),
-            "bidding_info.db"
-        )
+        # 数据库路径优先级：显式参数 > 环境变量 BIDDING_DB_PATH > 用户主目录默认路径
+        self.db_path = self._resolve_db_path(db_path)
 
         self._setup_ui()
         self._init_database()
+
+    @staticmethod
+    def _resolve_db_path(db_path: Optional[str] = None) -> str:
+        """解析数据库文件路径。
+
+        优先级：显式参数 > 环境变量 ``BIDDING_DB_PATH`` > 用户主目录 ``bidding_info.db``。
+        """
+        candidate = db_path or os.environ.get("BIDDING_DB_PATH")
+        if candidate:
+            return os.path.abspath(os.path.expanduser(candidate))
+        return os.path.join(os.path.expanduser("~"), "bidding_info.db")
 
     def _setup_ui(self):
         """设置用户界面"""
@@ -298,6 +306,9 @@ class App(ctk.CTk):
         try:
             if self.db:
                 self.db.close()
+            parent_dir = os.path.dirname(self.db_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
             self.db = Database(self.db_path)
             self._update_stats()
             self._log(f"[INFO] 数据库已打开：{self.db_path}")

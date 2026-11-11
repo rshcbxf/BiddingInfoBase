@@ -16,6 +16,9 @@ pip install -r requirements.txt
 python -m bidding_gui.main
 # 或
 python bidding_gui/main.py
+
+# 指定数据库（优先级：--db > 环境变量 BIDDING_DB_PATH > 用户主目录 bidding_info.db）
+python -m bidding_gui.main --db D:\data\bidding.db
 ```
 
 ## 项目结构
@@ -30,8 +33,11 @@ C:\Projects\BiddingInfoBase\
 │   ├── parser.py           # 文档解析器（PDF/DOC/DOCX）
 │   └── scanner.py          # 文件扫描器（支持中断、增量扫描）
 ├── tools/archive/          # 开发期一次性调试脚本（已归档，不参与运行、不要复用）
+├── tests/                  # pytest 回归用例
 ├── sample_doc/             # 本地测试语料（真实文档，已 gitignore）
 ├── requirements.txt
+├── requirements-dev.txt    # 开发依赖（含 pytest）
+├── pytest.ini
 ├── README.md               # 对外使用说明
 ├── CLAUDE.md
 ├── fix_plan.md / fix_summary.md   # 分项明细问题的分析与修复记录
@@ -122,4 +128,5 @@ CREATE TABLE itemized_details (
 
 1. 修改解析规则后，用 `sample_doc/` 中的真实文档做回归；不要复用 `tools/archive/` 里的旧脚本（路径硬编码、逻辑已过时）。
 2. 修改表结构时同步更新 `_init_tables()` 与 `_migrate()`，保证旧库可平滑升级。
-3. 对外行为变更同步更新 README.md 与 CLAUDE.md。
+3. 运行测试：`pip install -r requirements-dev.txt` 后执行 `pytest`（用例在 `tests/`）。
+4. 对外行为变更同步更新 README.md 与 CLAUDE.md。

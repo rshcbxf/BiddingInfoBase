@@ -45,9 +45,17 @@ pip install -r requirements.txt
 python -m bidding_gui.main
 # 或
 python bidding_gui/main.py
+
+# 指定数据库文件（父目录不存在时自动创建）
+python -m bidding_gui.main --db D:\data\bidding.db
+
+# 也可通过环境变量指定（Windows）
+set BIDDING_DB_PATH=D:\data\bidding.db
+# macOS / Linux
+export BIDDING_DB_PATH=/data/bidding.db
 ```
 
-首次启动会在**用户主目录**自动创建数据库 `bidding_info.db`（例如 `C:\Users\<用户>\bidding_info.db`），可在界面顶部的“数据库配置”区域修改路径。
+数据库路径优先级：`--db` 参数 > 环境变量 `BIDDING_DB_PATH` > **用户主目录**下的 `bidding_info.db`（例如 `C:\Users\<用户>\bidding_info.db`）。运行中也可在界面顶部的“数据库配置”区域浏览切换。
 
 ## 使用说明
 
@@ -100,8 +108,11 @@ BiddingInfoBase/
 │   ├── parser.py             # 文档解析与信息抽取
 │   └── scanner.py            # 扫描调度（增量、可中断）
 ├── tools/archive/            # 开发期一次性调试脚本（已归档，不参与运行）
+├── tests/                    # pytest 回归用例（解析规则 / 数据库级联 / 路径解析）
 ├── sample_doc/               # 本地测试语料（真实招标/投标文档，未纳入版本库）
 ├── requirements.txt
+├── requirements-dev.txt      # 开发依赖（requirements.txt + pytest）
+├── pytest.ini                # pytest 配置
 ├── README.md                 # 本文件
 ├── CLAUDE.md                 # 面向 AI 编码助手的仓库指南
 ├── fix_plan.md               # “分项明细”问题的分析与修复方案
@@ -223,7 +234,7 @@ CREATE INDEX idx_project_id ON itemized_details(project_id);
 5. **多版本合并有条件**：仅当项目名称、投标单位、日期三者都非空时才生效，缺字段的文件可能重复入库。
 6. **CSV 不含分项明细**：仅导出结果列表的 8 个字段。
 7. **单线程串行扫描**：超大目录或大体积 PDF 时速度较慢、内存占用较高。
-8. **无自动化测试**：当前验证依赖手工脚本与真实语料回归。
+8. **自动化测试覆盖有限**：`tests/` 覆盖关键解析规则与数据库级联，复杂真实文档仍建议用 `sample_doc/` 做回归。
 
 ## 常见问题（FAQ）
 
@@ -247,7 +258,15 @@ CREATE INDEX idx_project_id ON itemized_details(project_id);
 - **修改解析规则**：编辑 `bidding_gui/parser.py` 中的 `PATTERNS`、`is_bid_document`、`_extract_itemized_details` 等；建议用 `sample_doc/` 中的真实文档做回归对比。
 - **修改表结构**：在 `database.py` 的 `_init_tables()` 中调整建表语句，并在 `_migrate()` 中补齐旧库迁移逻辑，保证已有数据库可平滑升级。
 - **历史脚本**：根目录原有的 19 个调试脚本已归档到 [`tools/archive/`](tools/archive/README.md)，其中硬编码了作者本机路径、且复制了旧版解析逻辑，仅供追溯，不建议复用。
-- **测试建议**：目前无正式测试体系，可考虑为 `parser.is_bid_document`、明细提取、数据库级联与迁移补充 pytest 用例。
+- **运行测试**：
+
+  ```bash
+  pip install -r requirements-dev.txt
+  pytest
+  ```
+
+  用例位于 `tests/`，覆盖日期归一、投标文件判定、字段抽取、分项明细过滤、数据库外键级联与数据库路径解析。
+- **测试建议**：复杂真实文档仍建议用 `sample_doc/` 做回归对比，可继续补充解析器与 GUI 的端到端用例。
 
 ## 版本
 

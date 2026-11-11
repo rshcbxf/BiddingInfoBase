@@ -41,6 +41,9 @@ build/
 dist/
 *.egg-info/
 
+# 测试缓存
+.pytest_cache/
+
 # 但保留项目文档目录
 !docs/**/*.pdf
 !docs/**/*.doc
