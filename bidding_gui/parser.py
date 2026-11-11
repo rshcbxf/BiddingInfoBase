@@ -4,8 +4,7 @@
 """
 import re
 import os
-from datetime import datetime
-from typing import Optional, Dict, List, Tuple
+from typing import Dict, List
 from dataclasses import dataclass
 
 
@@ -75,11 +74,10 @@ class DocumentParser:
         ],
     }
 
-    # 日期标准化格式
+    # 日期匹配格式（年月日之间允许空白；统一输出为 YYYY-MM-DD，月/日补零）
     DATE_PATTERNS = [
-        (r'(\d{4}) 年 (\d{1,2}) 月 (\d{1,2}) 日', r'\1-\2-\3'),
-        (r'(\d{4})/(\d{1,2})/(\d{1,2})', r'\1-\2-\3'),
-        (r'(\d{4})\.(\d{1,2})\.(\d{1,2})', r'\1-\2-\3'),
+        r'(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*[日号]?',
+        r'(\d{4})\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{1,2})',
     ]
 
     def __init__(self):
@@ -442,9 +440,9 @@ class DocumentParser:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 result.project_name = match.group(1).strip()
-                # 清理常见后缀
+                # 清理常见后缀（"标段"/"第X包"及其前导左括号）
                 result.project_name = re.sub(
-                    r'\s*(标段 | 第.*包).*$', '', result.project_name)
+                    r'\s*[（(]?\s*(标段|第.*包).*$', '', result.project_name)
                 break
 
         # 提取投标函日期（落款日期）
@@ -491,34 +489,6 @@ class DocumentParser:
             first_line = text.strip().split('\n')[0].strip()
             if first_line and len(first_line) > 5:
                 result.project_name = first_line[:100]  # 限制长度
-
-    def _check_itemized_list(self, text: str) -> bool:
-        """
-        检测文档是否包含分项/明细章节
-        匹配章节名称中包含"分项"或"明细"的内容
-        """
-        # 章节标题模式（通常以数字开头，后跟标题）
-        patterns = [
-            r'(?:分项|明细).*(?:表|清单)',  # 分项报价明细表、工程量明细清单等
-            r'(?:表|清单).*(?:分项|明细)',  # 报价表分项、设备清单明细等
-            r'分项工程',
-            r'分项报价',
-            r'报价明细',
-            r'工程量分项',
-            r'设备明细',
-            r'货物明细',
-            r'清单明细',
-            r'投标报价表',
-            r'设备清单',
-            r'货物清单',
-            r'产品清单',
-        ]
-
-        for pattern in patterns:
-            if re.search(pattern, text, re.IGNORECASE):
-                return True
-
-        return False
 
     def _extract_itemized_details(self, text: str) -> List[ItemizedDetail]:
         """
@@ -652,14 +622,15 @@ class DocumentParser:
 
                 # 只有包含设备名称和数量/单位的表格才是设备明细表
                 if has_device_name and has_quantity:
+                    # 已确认是设备明细表，必须标记。
+                    # 章节标题可能已先把 in_itemized_table 置为 True，
+                    # 若只在 not in_itemized_table 分支标记，此路径会漏标导致最终返回空
+                    has_valid_table = True
                     # 如果之前已经在处理一个表格但没有提取到有效数据，切换到新表格
                     if in_itemized_table and valid_detail_count == 0:
-                        # 放弃之前的表格，使用新表头
-                        header_indices = self._match_header_columns(cells, column_mapping)
                         consecutive_data_rows = 0
                     elif not in_itemized_table:
                         in_itemized_table = True
-                        has_valid_table = True
                         consecutive_data_rows = 0
                     # 如果已经在处理表格且有有效数据，保持当前表格状态
                 else:
@@ -770,20 +741,12 @@ class DocumentParser:
         return indices
 
     def _normalize_date(self, date_str: str) -> str:
-        """标准化日期格式为 YYYY-MM-DD"""
-        # 先尝试匹配带"年月日"的格式（在移除之前）
-        for pattern, replacement in self.DATE_PATTERNS:
+        """标准化日期格式为 YYYY-MM-DD（月/日补零，无法识别时原样返回）"""
+        for pattern in self.DATE_PATTERNS:
             match = re.search(pattern, date_str)
             if match:
-                return re.sub(pattern, replacement, date_str)
-
-        # 移除"日"、"号"等后缀后再尝试匹配
-        date_str = re.sub(r'[日号]$', '', date_str)
-
-        for pattern, replacement in self.DATE_PATTERNS:
-            match = re.search(pattern, date_str)
-            if match:
-                return re.sub(pattern, replacement, date_str)
+                year, month, day = match.groups()
+                return f"{year}-{int(month):02d}-{int(day):02d}"
 
         # 如果无法解析，返回原始字符串
         return date_str
@@ -829,6 +792,8 @@ class DocumentParser:
                     # 清理常见后缀
                     org_name = re.sub(r'\s*\(.*?\)\s*$', '', org_name)
                     org_name = re.sub(r'\s*[，,].*$', '', org_name)
+                    # 去掉"致：某某单位："行尾冒号
+                    org_name = org_name.rstrip('：:').strip()
                     return org_name
 
         # 尝试从抬头提取（投标函标题下方的单位）

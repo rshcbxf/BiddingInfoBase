@@ -7,7 +7,6 @@ import threading
 import time
 from typing import Callable, Optional, Set, Tuple
 from dataclasses import dataclass
-from pathlib import Path
 
 from .database import Database, BiddingProject
 from .parser import DocumentParser

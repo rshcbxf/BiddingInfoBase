@@ -5,7 +5,6 @@
 import sqlite3
 import hashlib
 import os
-from datetime import datetime
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 
@@ -77,11 +76,15 @@ class Database:
         self._connect()
         self._init_tables()
         self._migrate()  # 执行数据库迁移
+        self._cleanup_orphan_details()  # 清理历史遗留的孤儿分项明细
 
     def _connect(self):
         """建立数据库连接"""
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        # SQLite 默认不启用外键约束，必须显式开启，
+        # 否则 itemized_details 的 ON DELETE CASCADE 不会生效。
+        self.conn.execute('PRAGMA foreign_keys = ON')
 
     def _init_tables(self):
         """初始化数据库表"""
@@ -206,6 +209,23 @@ class Database:
 
             self.conn.commit()
             print("数据库迁移完成！")
+
+    def _cleanup_orphan_details(self):
+        """
+        清理没有对应投标项目的孤儿分项明细。
+
+        旧版本未开启外键约束，删除主表记录时可能残留明细数据；
+        打开数据库时做一次兜底清理，保证两张表的数据一致。
+        """
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            DELETE FROM itemized_details
+            WHERE project_id NOT IN (SELECT id FROM bidding_projects)
+        ''')
+        orphan_count = cursor.rowcount
+        self.conn.commit()
+        if orphan_count > 0:
+            print(f"已清理 {orphan_count} 条孤儿分项明细")
 
     def close(self):
         """关闭数据库连接"""
@@ -352,14 +372,29 @@ class Database:
         cursor.execute('DELETE FROM itemized_details WHERE project_id = ?', (project_id,))
         self.conn.commit()
 
+    def _delete_details_for(self, project_ids: List[int]):
+        """删除指定项目下的分项明细（外键级联之外的显式兜底）"""
+        if not project_ids:
+            return
+        placeholders = ','.join('?' * len(project_ids))
+        cursor = self.conn.cursor()
+        cursor.execute(
+            f'DELETE FROM itemized_details WHERE project_id IN ({placeholders})',
+            project_ids
+        )
+
     def delete_by_id(self, record_id: int):
-        """根据 ID 删除记录"""
+        """根据 ID 删除记录（同时删除其分项明细）"""
+        self._delete_details_for([record_id])
         cursor = self.conn.cursor()
         cursor.execute('DELETE FROM bidding_projects WHERE id = ?', (record_id,))
         self.conn.commit()
 
     def delete_by_ids(self, record_ids: List[int]):
-        """批量删除记录"""
+        """批量删除记录（同时删除其分项明细）"""
+        if not record_ids:
+            return
+        self._delete_details_for(record_ids)
         cursor = self.conn.cursor()
         placeholders = ','.join('?' * len(record_ids))
         cursor.execute(

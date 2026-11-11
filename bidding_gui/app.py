@@ -12,7 +12,7 @@ from typing import Optional, List, Dict
 
 import customtkinter as ctk
 
-from .database import Database, BiddingProject
+from .database import Database
 from .parser import DocumentParser
 from .scanner import FileScanner, ScanProgress
 
@@ -20,15 +20,6 @@ from .scanner import FileScanner, ScanProgress
 # 设置外观
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
-
-
-class LogHandler:
-    """日志处理器"""
-    def __init__(self, callback):
-        self.callback = callback
-
-    def __call__(self, message: str):
-        self.callback(message)
 
 
 class App(ctk.CTk):
